@@ -49,7 +49,7 @@ const SlideDeck = ({ onNotesToggle, currentSlideObj, slideIndex, setSlideIndex, 
          gap: '60px', 
          maxHeight: isPrint ? 'none' : '85vh',
          overflowY: isPrint ? 'hidden' : 'auto',
-         background: isPrint ? '#0B0F19' : 'transparent', // dark bg for PDF canvas
+         background: isPrint ? '#0B0F19' : 'transparent', 
          border: isPrint ? 'none' : '',
          position: isPrint ? 'relative' : 'static',
          marginBottom: isPrint ? '20px' : '0',
@@ -104,19 +104,14 @@ const SlideDeck = ({ onNotesToggle, currentSlideObj, slideIndex, setSlideIndex, 
     </div>
   );
 
-
-  // PDF Export DOM
-  if (isExportingPDF) {
-     return (
-        <div id="pdf-export-container" style={{ width: '1920px', position: 'absolute', top: 0, left: '-9999px', background: '#0B0F19' }}>
-           {slides.map(s => <SlideContent key={s.id} s={s} isPrint={true} /> )}
-        </div>
-     );
-  }
-
   return (
     <div className="slide-deck-container" style={{ position: 'relative', padding: '20px', width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
       
+      {/* Hidden Master Map of Slides (Used by both html2canvas and pure Chromium Puppeteer extraction) */}
+      <div id="pdf-export-container" style={{ width: '1920px', position: 'absolute', top: 0, left: '-9999px', background: '#0B0F19' }}>
+         {slides.map(s => <SlideContent key={s.id} s={s} isPrint={true} /> )}
+      </div>
+
       {/* INTERACTIVE UI LAYOUT */}
       <div className="interactive-deck" style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '4px', background: 'rgba(255,255,255,0.05)' }}>
