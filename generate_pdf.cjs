@@ -13,12 +13,15 @@ const path = require('path');
 
         console.log("Injecting Custom Print Overrides...");
         await page.evaluate(() => {
-            // Force the PDF export container to display, hide the interactive deck
             const style = document.createElement('style');
             style.innerHTML = `
                 @media print {
-                    @page { size: 1920px 1080px landscape; margin: 0; }
-                    body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; background: #0B0F19 !important; }
+                    @page { size: 19.2in 10.8in; margin: 0; }
+                    body { 
+                        -webkit-print-color-adjust: exact !important; 
+                        print-color-adjust: exact !important; 
+                        background: #0B0F19 !important; 
+                    }
                     .header, .interactive-deck, .notes-panel { display: none !important; }
                     #pdf-export-container {
                         display: block !important;
@@ -32,6 +35,7 @@ const path = require('path');
                         position: relative !important;
                         width: 1920px !important;
                         height: 1080px !important;
+                        overflow: hidden !important;
                     }
                 }
             `;
@@ -44,9 +48,8 @@ const path = require('path');
         await page.pdf({
             path: outputPath,
             printBackground: true,
-            landscape: true,
-            width: '1920px',
-            height: '1080px',
+            width: '19.2in',   // Hard-forcing physical landscape bounds
+            height: '10.8in',  // Hard-forcing physical landscape bounds
             margin: { top: 0, right: 0, bottom: 0, left: 0 }
         });
 
