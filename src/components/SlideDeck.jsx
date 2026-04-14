@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, MessageSquareCode } from 'lucide-react';
 import { slides } from '../data/slidesData';
 
-const SlideDeck = ({ onNotesToggle, currentSlideObj, slideIndex, setSlideIndex }) => {
+const SlideDeck = ({ onNotesToggle, currentSlideObj, slideIndex, setSlideIndex, isExportingPDF }) => {
 
   const nextSlide = useCallback(() => {
     if (slideIndex < slides.length - 1) {
@@ -23,42 +23,47 @@ const SlideDeck = ({ onNotesToggle, currentSlideObj, slideIndex, setSlideIndex }
 
   useEffect(() => {
     const handleKeyDown = (e) => {
+      // Disable key nav if exporting PDF
+      if (isExportingPDF) return;
       if (e.key === 'ArrowRight') nextSlide();
       if (e.key === 'ArrowLeft') prevSlide();
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [nextSlide, prevSlide]);
+  }, [nextSlide, prevSlide, isExportingPDF]);
 
   const slide = slides[slideIndex];
   const progressPercent = ((slideIndex + 1) / slides.length) * 100;
 
-  // Single Slide Renderer (Re-used for both UI and Print Views)
+  // Single Slide Renderer (Re-used for Native Download Format)
   const SlideContent = ({ s, isPrint }) => (
-    <div style={{
-       width: isPrint ? '100%' : '95%', 
-       maxWidth: isPrint ? 'none' : '1300px', 
-       padding: '40px', 
-       display: 'flex', 
-       flexDirection: 'row', 
-       gap: '40px', 
-       maxHeight: isPrint ? 'none' : '85vh',
-       overflowY: isPrint ? 'visible' : 'auto',
-       marginTop: isPrint ? '0' : '20px',
-       pageBreakAfter: 'always', // Force page breaks in PDF print
-       background: isPrint ? '#0B0F19' : 'transparent', // dark bg for PDF mapping
-       border: isPrint ? 'none' : ''
-    }}
-    className={isPrint ? 'print-page' : 'glass-pane'}>
-      {/* Left text column */}
+    <div 
+      className={isPrint ? 'pdf-slide-node' : 'glass-pane'}
+      style={{
+         width: isPrint ? '1920px' : '95%', 
+         height: isPrint ? '1080px' : 'auto',
+         maxWidth: isPrint ? 'none' : '1300px', 
+         padding: isPrint ? '80px' : '40px', 
+         display: 'flex', 
+         flexDirection: 'row', 
+         gap: '60px', 
+         maxHeight: isPrint ? 'none' : '85vh',
+         overflowY: isPrint ? 'hidden' : 'auto',
+         background: isPrint ? '#0B0F19' : 'transparent', // dark bg for PDF canvas
+         border: isPrint ? 'none' : '',
+         position: isPrint ? 'relative' : 'static',
+         marginBottom: isPrint ? '20px' : '0',
+         boxSizing: 'border-box'
+      }}
+    >
       <div style={{ flex: 1.2, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
-        <h1 style={{ fontSize: '2.2rem', fontWeight: 700, color: '#3b82f6', marginBottom: '24px', wordWrap: 'break-word', lineHeight: 1.3 }}>
+        <h1 style={{ fontSize: isPrint ? '3.5rem' : '2.2rem', fontWeight: 700, color: '#3b82f6', marginBottom: isPrint ? '40px' :'24px', wordWrap: 'break-word', lineHeight: 1.3 }}>
           {s.title}
         </h1>
         
-        <ul style={{ listStyleType: 'none', display: 'flex', flexDirection: 'column', gap: '20px', minHeight: '150px' }}>
+        <ul style={{ listStyleType: 'none', display: 'flex', flexDirection: 'column', gap: isPrint ? '30px' : '20px', minHeight: '150px' }}>
            {s.bullets.map((b, i) => (
-              <li key={i} style={{ fontSize: '1.2rem', lineHeight: '1.5', display: 'flex', gap: '12px', color: '#f3f4f6' }}>
+              <li key={i} style={{ fontSize: isPrint ? '1.8rem' : '1.2rem', lineHeight: '1.5', display: 'flex', gap: '16px', color: '#f3f4f6' }}>
                 <span style={{ color: '#3b82f6' }}>•</span> 
                 <span style={{ flex: 1 }}>{b}</span>
               </li>
@@ -66,20 +71,19 @@ const SlideDeck = ({ onNotesToggle, currentSlideObj, slideIndex, setSlideIndex }
         </ul>
 
         {s.codeSnippet && (
-          <div style={{ marginTop: '20px', background: '#000', padding: '16px', borderRadius: '8px', borderLeft: '4px solid #10b981' }}>
-            <pre style={{ color: '#10b981', fontSize: '1.1rem', margin: 0, fontFamily: 'monospace', overflowX: 'auto', whiteSpace: 'pre-wrap' }}>
+          <div style={{ marginTop: '30px', background: '#000', padding: '24px', borderRadius: '12px', borderLeft: '6px solid #10b981' }}>
+            <pre style={{ color: '#10b981', fontSize: isPrint ? '1.5rem' : '1.1rem', margin: 0, fontFamily: 'monospace', whiteSpace: 'pre-wrap' }}>
               <code>{s.codeSnippet}</code>
             </pre>
           </div>
         )}
 
-        <div style={{ marginTop: '24px', padding: '20px', background: 'rgba(59, 130, 246, 0.1)', borderLeft: '4px solid #3b82f6', borderRadius: '0 8px 8px 0' }}>
-           <strong style={{ display: 'block', marginBottom: '8px', color: '#3b82f6', textTransform: 'uppercase', fontSize: '0.8rem', letterSpacing: '0.05em' }}>Business Analogy</strong>
-           <span style={{ fontSize: '1.1rem', fontStyle: 'italic', lineHeight: 1.5, color: '#94a3b8' }}>"{s.analogy}"</span>
+        <div style={{ marginTop: 'auto', padding: '30px', background: 'rgba(59, 130, 246, 0.1)', borderLeft: '6px solid #3b82f6', borderRadius: '0 12px 12px 0' }}>
+           <strong style={{ display: 'block', marginBottom: '12px', color: '#3b82f6', textTransform: 'uppercase', fontSize: isPrint ? '1.2rem' : '0.8rem', letterSpacing: '0.05em' }}>Business Analogy</strong>
+           <span style={{ fontSize: isPrint ? '1.5rem' : '1.1rem', fontStyle: 'italic', lineHeight: 1.5, color: '#94a3b8' }}>"{s.analogy}"</span>
         </div>
       </div>
       
-      {/* Right Image column */}
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         {s.image && (
           <div style={{ 
@@ -87,48 +91,33 @@ const SlideDeck = ({ onNotesToggle, currentSlideObj, slideIndex, setSlideIndex }
               display: 'flex', 
               alignItems: 'center', 
               justifyContent: 'center',
-              borderRadius: '16px',
+              borderRadius: '24px',
               overflow: 'hidden',
               boxShadow: isPrint ? 'none' : '0 20px 40px rgba(0,0,0,0.4)',
               position: 'relative'
             }}>
-            <img src={s.image} alt="Visual aid" style={{ width: '100%', height: 'auto', maxHeight: '500px', objectFit: 'contain', background: 'var(--bg-color)' }} />
+            <img src={s.image} alt="Visual aid" style={{ width: '100%', height: 'auto', maxHeight: isPrint ? '800px' : '500px', objectFit: 'contain', background: 'var(--bg-color)' }} />
             <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(11,15,25,0) 0%, rgba(11,15,25,0.4) 100%)', pointerEvents: 'none' }} />
           </div>
-        )}
-
-        {!s.image && (
-          <div style={{ width: '100%', height: '100%', minHeight: '300px', background: 'rgba(255,255,255,0.05)', borderRadius: '16px' }} />
         )}
       </div>
     </div>
   );
 
 
+  // PDF Export DOM
+  if (isExportingPDF) {
+     return (
+        <div id="pdf-export-container" style={{ width: '1920px', position: 'absolute', top: 0, left: '-9999px', background: '#0B0F19' }}>
+           {slides.map(s => <SlideContent key={s.id} s={s} isPrint={true} /> )}
+        </div>
+     );
+  }
+
   return (
     <div className="slide-deck-container" style={{ position: 'relative', padding: '20px', width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
       
-      {/* Global CSS overriding browser print to hide UI controls & force colors */}
-      <style>{`
-        @media print {
-          body { background-color: #0B0F19 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-          .interactive-deck { display: none !important; }
-          .header, .btn, .notes-panel, .shortcut-btn { display: none !important; }
-          .slide-deck-container { padding: 0 !important; overflow: visible !important; height: auto !important; }
-          .print-layout { display: block !important; }
-          @page { size: landscape; margin: 0; }
-        }
-        @media screen {
-          .print-layout { display: none !important; }
-        }
-      `}</style>
-
-      {/* PRINT LAYOUT (Hidden on screen, maps all 14 slides to PDF format natively) */}
-      <div className="print-layout">
-         {slides.map(s => <SlideContent key={s.id} s={s} isPrint={true} /> )}
-      </div>
-
-      {/* INTERACTIVE UI LAYOUT (Hidden on print) */}
+      {/* INTERACTIVE UI LAYOUT */}
       <div className="interactive-deck" style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '4px', background: 'rgba(255,255,255,0.05)' }}>
            <motion.div 
@@ -164,7 +153,7 @@ const SlideDeck = ({ onNotesToggle, currentSlideObj, slideIndex, setSlideIndex }
           </button>
           
           <button className="btn" style={{ marginLeft: '40px' }} onClick={onNotesToggle}>
-             <MessageSquareCode size={20} /> Speaker Notes (Left/Right Arrows)
+             <MessageSquareCode size={20} /> Speaker Notes
           </button>
         </div>
       </div>

@@ -1,10 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Presentation, Terminal, LayoutDashboard, FileText, Download, FileImage, Presentation as SlidesIcon, Printer } from 'lucide-react';
+import { Presentation, Terminal, LayoutDashboard, FileText, Download, FileImage, Presentation as SlidesIcon, Printer, Loader2 } from 'lucide-react';
 import SlideDeck from './components/SlideDeck';
 import SQLDemo from './components/SQLDemo';
 import { motion, AnimatePresence } from 'framer-motion';
 import { slides } from './data/slidesData'; 
 import pptxgen from "pptxgenjs";
+
+// Native PDF Generation libraries
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
 
 function App() {
   const [view, setView] = useState('slides'); 
@@ -12,11 +16,11 @@ function App() {
   const [currentSlide, setCurrentSlide] = useState(null);
   const [slideIndex, setSlideIndex] = useState(0); 
   
-  // State for Dropdown
+  // State for Dropdown and Export UI
   const [showDownloadMenu, setShowDownloadMenu] = useState(false);
+  const [isExportingPDF, setIsExportingPDF] = useState(false); // Flags SlideDeck to render PDF DOM
   const dropdownRef = useRef(null);
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -27,20 +31,14 @@ function App() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [dropdownRef]);
 
-  // Native blob export for students to keep (Markdown)
+  // Markdown Export
   const handleDownloadHandout = () => {
     let content = "# Complete SQL Course: Business Executive Handout\n\n";
     slides.forEach(s => {
       content += `## ${s.id}. ${s.title}\n`;
-      s.bullets.forEach(b => {
-        content += `- ${b}\n`;
-      });
-      if (s.codeSnippet) {
-        content += `\n\`\`\`sql\n${s.codeSnippet}\n\`\`\`\n`;
-      }
-      if (s.analogy) {
-        content += `\n*Executive Analogy*: ${s.analogy}\n`;
-      }
+      s.bullets.forEach(b => { content += `- ${b}\n`; });
+      if (s.codeSnippet) { content += `\n\`\`\`sql\n${s.codeSnippet}\n\`\`\`\n`; }
+      if (s.analogy) { content += `\n*Executive Analogy*: ${s.analogy}\n`; }
       content += `\n---\n\n`;
     });
 
@@ -56,58 +54,73 @@ function App() {
     setShowDownloadMenu(false);
   };
 
-  // Generate Native PowerPoint (PPTX) format
+  // PPTX Export
   const handleDownloadPPTX = () => {
     let pres = new pptxgen();
     pres.author = 'Complete SQL Course';
-    pres.company = 'SQL Bootcamp';
     pres.layout = 'LAYOUT_16x9';
 
     slides.forEach(s => {
       let slide = pres.addSlide();
       slide.background = { color: "0B0F19" }; 
-
-      slide.addText(s.title || "SQL Overview", { 
-         x: 0.5, y: 0.5, w: "90%", h: 1, 
-         fontSize: 32, color: "3B82F6", bold: true, fontFace: "Inter" 
-      });
-
+      slide.addText(s.title || "SQL Overview", { x: 0.5, y: 0.5, w: "90%", h: 1, fontSize: 32, color: "3B82F6", bold: true, fontFace: "Inter" });
       if (s.bullets && s.bullets.length > 0) {
         const bulletData = s.bullets.map(b => ({ text: b, options: { bullet: true, color: "F3F4F6", fontSize: 18, fontFace: "Inter" } }));
         slide.addText(bulletData, { x: 0.5, y: 1.8, w: "45%", h: 3, valign: "top", color: "F3F4F6", lineHeight: 1.5 });
       }
-
       if (s.codeSnippet) {
-         slide.addText(s.codeSnippet, { 
-            x: 0.5, y: 5.0, w: "45%", h: 1.5, 
-            fontSize: 14, color: "10B981", fontFace: "Courier New", fill: { color: "000000" }, margin: 10 
-         });
+         slide.addText(s.codeSnippet, { x: 0.5, y: 5.0, w: "45%", h: 1.5, fontSize: 14, color: "10B981", fontFace: "Courier New", fill: { color: "000000" }, margin: 10 });
       }
-
       if (s.image) {
         slide.addImage({ path: window.location.origin + s.image, x: "52%", y: 1.8, w: "43%", h: 4.7, sizing: {type: 'contain'} });
       }
-
-      if (s.speakerNotes) {
-        slide.addNotes(s.speakerNotes);
-      }
+      if (s.speakerNotes) { slide.addNotes(s.speakerNotes); }
     });
-
     pres.writeFile({ fileName: "Complete_SQL_Presentation.pptx" });
     setShowDownloadMenu(false);
   };
 
-  const handleDownloadPDF = () => {
-    // Relying on native browser Print-To-PDF which correctly maps the exact React UI frame
-    window.print();
-    setShowDownloadMenu(false);
+  // NATIVE Exact-Match PDF Export generating files (Resolving print failure)
+  const handleDownloadPDFNative = async () => {
+     setShowDownloadMenu(false);
+     setIsExportingPDF(true); // Forces SlideDeck to instantly render full 16x9 1920x1080 HTML blocks
+
+     // Allow React to flush the DOM rendering
+     setTimeout(async () => {
+         try {
+             // Landscape standard A4/Slide size PDF
+             const pdf = new jsPDF({ orientation: 'landscape', unit: 'px', format: [1920, 1080] });
+             const slideNodes = document.querySelectorAll('.pdf-slide-node');
+
+             for (let i = 0; i < slideNodes.length; i++) {
+                 const node = slideNodes[i];
+                 const canvas = await html2canvas(node, {
+                     scale: 1, // 1 is enough since node is 1920x1080 explicitly
+                     backgroundColor: '#0B0F19',
+                     logging: false,
+                     useCORS: true // Essential for images
+                 });
+                 const imgData = canvas.toDataURL('image/png');
+                 
+                 if (i > 0) pdf.addPage([1920, 1080]);
+                 pdf.addImage(imgData, 'PNG', 0, 0, 1920, 1080);
+             }
+
+             pdf.save("Complete_SQL_Presentation.pdf");
+         } catch (e) {
+             console.error("PDF Generation failed:", e);
+             alert("Could not generate PDF locally. Please try PPTX export.");
+         } finally {
+             setIsExportingPDF(false); // Restore normal UI
+         }
+     }, 1000); // 1-second timeout guarantees image loading in off-screen DOM
   };
 
 
   return (
     <div className="app-container">
       {/* Top Navigation */}
-      <header className="header">
+      <header className="header" style={{ opacity: isExportingPDF ? 0.5 : 1, pointerEvents: isExportingPDF ? 'none' : 'all' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <LayoutDashboard color="var(--accent)" />
           <h1 style={{ fontSize: '1.4rem', fontWeight: 700, letterSpacing: '0.05em' }}>Complete SQL</h1>
@@ -115,18 +128,16 @@ function App() {
         
         <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
           
-          {/* Download Dropdown Component */}
           <div style={{ position: 'relative' }} ref={dropdownRef}>
             <button 
               className="btn" 
               onClick={() => setShowDownloadMenu(!showDownloadMenu)}
               title="Download Options"
-              style={{ padding: '8px', borderRadius: '50%', background: 'rgba(255,255,255,0.05)' }}
+              style={{ padding: '8px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)' }}
             >
-              <Download size={20} />
+              {isExportingPDF ? <Loader2 size={20} className="spinner" /> : <Download size={20} />}
             </button>
 
-            {/* Dropdown Menu */}
             <AnimatePresence>
               {showDownloadMenu && (
                 <motion.div
@@ -135,20 +146,10 @@ function App() {
                   exit={{ opacity: 0, y: 10, scale: 0.95 }}
                   transition={{ duration: 0.15 }}
                   style={{
-                    position: 'absolute',
-                    top: '100%',
-                    right: 0,
-                    marginTop: '12px',
-                    background: '#0B0F19',
-                    border: '1px solid rgba(59, 130, 246, 0.4)',
-                    borderRadius: '12px',
-                    boxShadow: '0 10px 40px rgba(0,0,0,0.8)',
-                    padding: '8px',
-                    minWidth: '220px',
-                    zIndex: 100,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '4px'
+                    position: 'absolute', top: '100%', right: 0, marginTop: '12px',
+                    background: '#0B0F19', border: '1px solid rgba(59, 130, 246, 0.4)', borderRadius: '12px',
+                    boxShadow: '0 10px 40px rgba(0,0,0,0.8)', padding: '8px', minWidth: '220px', zIndex: 100,
+                    display: 'flex', flexDirection: 'column', gap: '4px'
                   }}
                 >
                   <div style={{ padding: '8px', fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Download Format</div>
@@ -156,8 +157,8 @@ function App() {
                   <button className="dropdown-item" onClick={handleDownloadPPTX}>
                     <SlidesIcon size={16} /> PPTX & Google Slides
                   </button>
-                  <button className="dropdown-item" onClick={handleDownloadPDF}>
-                    <Printer size={16} /> PDF Document
+                  <button className="dropdown-item" onClick={handleDownloadPDFNative}>
+                    <Printer size={16} /> Real Native PDF 
                   </button>
                   <div style={{ height: '1px', background: 'rgba(255,255,255,0.1)', margin: '4px 0' }} />
                   <button className="dropdown-item" onClick={handleDownloadHandout}>
@@ -184,28 +185,16 @@ function App() {
         </div>
       </header>
 
-      {/* Embedded CSS for dropdown items to keep styling isolated */}
+      {/* Embedded CSS */}
       <style>{`
         .dropdown-item {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          padding: 10px 12px;
-          width: 100%;
-          background: transparent;
-          border: none;
-          color: #f8fafc;
-          border-radius: 8px;
-          cursor: pointer;
-          transition: all 0.2s;
-          font-size: 0.9rem;
-          font-family: inherit;
-          text-align: left;
+          display: flex; align-items: center; gap: 12px; padding: 10px 12px; width: 100%;
+          background: transparent; border: none; color: #f8fafc; border-radius: 8px;
+          cursor: pointer; transition: all 0.2s; font-size: 0.9rem; font-family: inherit; text-align: left;
         }
-        .dropdown-item:hover {
-          background: rgba(59, 130, 246, 0.2);
-          color: #60a5fa;
-        }
+        .dropdown-item:hover { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        .spinner { animation: spin 1s linear infinite; }
       `}</style>
 
       {/* Main Content Area */}
@@ -216,14 +205,14 @@ function App() {
              currentSlideObj={setCurrentSlide} 
              slideIndex={slideIndex}
              setSlideIndex={setSlideIndex}
+             isExportingPDF={isExportingPDF}
           />
         ) : (
           <SQLDemo />
         )}
 
-        {/* Speaker Notes Floating Panel */}
         <AnimatePresence>
-          {showNotes && currentSlide && view === 'slides' && (
+          {showNotes && currentSlide && view === 'slides' && !isExportingPDF && (
             <motion.div
               initial={{ opacity: 0, y: 50, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
