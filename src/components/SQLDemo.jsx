@@ -113,7 +113,7 @@ const SQLDemo = () => {
   };
 
   return (
-    <div style={{ display: 'flex', height: '100%', padding: '24px', gap: '24px' }}>
+    <div className="sql-demo-layout" style={{ display: 'flex', height: '100%', padding: '24px', gap: '24px' }}>
       <style>{customStyles}</style>
 
       {/* Editor Pane (Left Side) */}
@@ -149,7 +149,9 @@ const SQLDemo = () => {
         
         <div style={{ flex: 1, position: 'relative', overflowY: 'auto', background: '#09090b', padding: '10px 0' }}>
            <div style={{ position: 'absolute', top: 0, left: 0, bottom: 0, width: '50px', background: 'rgba(255,255,255,0.02)', borderRight: '1px solid rgba(255,255,255,0.05)', display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: '24px', opacity: 0.5 }}>
-              {[...Array(20)].map((_, i) => <div key={i} style={{ fontSize: '0.9rem', marginBottom: '8.5px', color: '#64748b', fontFamily: 'monospace' }}>{i + 1}</div>)}
+              {Array.from({ length: query.split('\n').length }, (_, i) => (
+                <div key={i} style={{ fontSize: '0.9rem', marginBottom: '8.5px', color: '#64748b', fontFamily: 'monospace' }}>{i + 1}</div>
+              ))}
            </div>
            <div style={{ marginLeft: '50px' }}>
               <Editor

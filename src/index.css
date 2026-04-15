@@ -1,10 +1,13 @@
 :root {
   --bg-color: #0b0f19;
-  --surface: rgba(255, 255, 255, 0.05);
+  --bg-gradient: radial-gradient(ellipse at 20% 50%, #1a1040 0%, #0b0f19 40%, #060810 100%);
+  --surface: rgba(15, 20, 40, 0.65);
   --surface-hover: rgba(255, 255, 255, 0.1);
-  --surface-border: rgba(255, 255, 255, 0.1);
-  --accent: #3b82f6; /* Premium Blue */
-  --accent-glow: rgba(59, 130, 246, 0.5);
+  --surface-border: rgba(99, 102, 241, 0.15);
+  --accent: #6366f1;
+  --accent-secondary: #3b82f6;
+  --accent-glow: rgba(99, 102, 241, 0.6);
+  --gold: #f59e0b;
   --text-main: #f8fafc;
   --text-muted: #94a3b8;
   --success: #10b981;
@@ -19,20 +22,82 @@
 
 body {
   font-family: 'Inter', system-ui, sans-serif;
+  background: var(--bg-gradient);
+  background-attachment: fixed;
   background-color: var(--bg-color);
   color: var(--text-main);
   min-height: 100vh;
-  overflow: hidden; 
+  overflow: hidden;
 }
 
-/* Glassmorphism pane */
+/* Aurora animated background blobs */
+.aurora-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.aurora-layer::before {
+  content: '';
+  position: absolute;
+  width: 900px;
+  height: 900px;
+  top: -300px;
+  left: -300px;
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.13) 0%, transparent 65%);
+  animation: aurora 22s ease-in-out infinite;
+}
+
+.aurora-layer::after {
+  content: '';
+  position: absolute;
+  width: 700px;
+  height: 700px;
+  bottom: -150px;
+  right: -150px;
+  background: radial-gradient(circle, rgba(6, 182, 212, 0.09) 0%, transparent 65%);
+  animation: aurora 30s ease-in-out infinite reverse;
+}
+
+@keyframes aurora {
+  0%   { transform: translate(0, 0) rotate(0deg);     opacity: 0.5; }
+  33%  { transform: translate(80px, 60px) rotate(120deg); opacity: 0.8; }
+  66%  { transform: translate(-60px, 80px) rotate(240deg); opacity: 0.5; }
+  100% { transform: translate(0, 0) rotate(360deg);   opacity: 0.5; }
+}
+
+/* Glassmorphism pane — premium upgrade */
 .glass-pane {
   background: var(--surface);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
   border: 1px solid var(--surface-border);
   border-radius: 16px;
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.04) inset,
+    0 8px 60px rgba(0, 0, 0, 0.55),
+    0 0 80px rgba(99, 102, 241, 0.06);
+}
+
+/* Progress bar — gradient glow */
+.progress-bar-fill {
+  background: linear-gradient(90deg, #6366f1, #3b82f6, #06b6d4);
+  box-shadow: 0 0 18px rgba(99, 102, 241, 0.9), 0 0 36px rgba(59, 130, 246, 0.4);
+}
+
+/* Slide counter pill badge */
+.slide-counter-badge {
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: var(--accent);
+  text-shadow: 0 0 18px var(--accent-glow);
+  padding: 6px 18px;
+  border: 1px solid rgba(99, 102, 241, 0.4);
+  border-radius: 20px;
+  background: rgba(99, 102, 241, 0.1);
 }
 
 .btn {
@@ -58,7 +123,17 @@ body {
   color: white;
 }
 .btn.primary:hover {
-  box-shadow: 0 0 15px var(--accent-glow);
+  box-shadow: 0 0 18px var(--accent-glow);
+}
+.btn.present {
+  background: linear-gradient(135deg, #6366f1, #3b82f6);
+  border-color: transparent;
+  color: white;
+  box-shadow: 0 4px 20px rgba(99, 102, 241, 0.4);
+}
+.btn.present:hover {
+  box-shadow: 0 4px 30px rgba(99, 102, 241, 0.7);
+  transform: translateY(-1px);
 }
 
 /* Scrollbar */
@@ -77,7 +152,7 @@ body {
   background: var(--surface-border);
 }
 
-/* Utilities */
+/* Layout */
 .app-container {
   display: flex;
   flex-direction: column;
@@ -89,10 +164,10 @@ body {
   align-items: center;
   justify-content: space-between;
   padding: 0 32px;
-  border-bottom: 1px solid var(--surface-border);
+  border-bottom: 1px solid rgba(99, 102, 241, 0.12);
   z-index: 50;
-  background: rgba(11, 15, 25, 0.8);
-  backdrop-filter: blur(10px);
+  background: rgba(6, 8, 16, 0.85);
+  backdrop-filter: blur(16px);
 }
 .main-content {
   flex: 1;
@@ -143,7 +218,48 @@ td {
   background: var(--surface-hover);
 }
 
-/* Speaker Notes Panel styling */
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  body {
+    overflow: auto;
+  }
+
+  .app-container {
+    height: auto;
+    min-height: 100vh;
+  }
+
+  .header {
+    height: auto;
+    padding: 10px 16px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .main-content {
+    overflow: auto;
+    height: auto;
+  }
+
+  .slide-deck-container {
+    height: auto !important;
+    padding: 12px !important;
+  }
+
+  .slide-content-row {
+    flex-direction: column !important;
+    gap: 24px !important;
+    max-height: none !important;
+  }
+
+  .sql-demo-layout {
+    flex-direction: column !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+}
+
+/* Speaker Notes Panel */
 .notes-panel {
   position: absolute;
   bottom: 20px;
